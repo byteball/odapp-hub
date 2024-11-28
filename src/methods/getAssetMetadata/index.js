@@ -1,5 +1,5 @@
 const conf = require('ocore/conf');
-const db = require('../../services/db');
+const db = require('ocore/db');
 const constants = require('ocore/constants.js');
 const { isStringOfLength } = require('ocore/validation_utils');
 const assetMetadataCache = require('../../cacheClasses/assetMetadata');

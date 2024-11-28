@@ -1,4 +1,4 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const { isValidAddress } = require('ocore/validation_utils');
 const { executeGetter: execGetter } = require('ocore/formula/evaluation.js');
 

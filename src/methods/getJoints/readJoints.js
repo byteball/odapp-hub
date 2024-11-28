@@ -1,5 +1,6 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const kv = require('../../services/kv.js');
+const { In, flat } = require('../../utils/dbUtils');
 const jointsCache = require('../../cacheClasses/jointsCache');
 
 const versionWithoutTimestamp = process.env.testnet ? '1.0t' : '1.0';
@@ -28,7 +29,7 @@ async function readJoints(units) {
 		return JSON.parse(v);
 	});
 	
-	const rows = await db.query('SELECT unit, main_chain_index, ' + db.getUnixTimestamp('creation_date') + ` AS timestamp FROM units WHERE unit IN (${db.In(units)})`, [units]);
+	const rows = await db.query('SELECT unit, main_chain_index, ' + db.getUnixTimestamp('creation_date') + ` AS timestamp FROM units WHERE unit IN (${In(units)})`, flat([units]));
 	const objRows = {};
 	rows.forEach(row => {
 		objRows[row.unit] = {

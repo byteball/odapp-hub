@@ -1,5 +1,6 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const { isValidAddress } = require('ocore/validation_utils');
+const { In, flat } = require('../../utils/dbUtils');
 
 async function getAAsByBaseAAs(baseAAs) {
 	if (!baseAAs || !Array.isArray(baseAAs)) {
@@ -25,7 +26,7 @@ async function getAAsByBaseAAs(baseAAs) {
 	baseAAs = [...new Set(baseAAs)];
 	
 	
-	const rows = await db.query(`SELECT address, definition, unit, creation_date FROM aa_addresses WHERE base_aa IN(${db.In(baseAAs)})`, [baseAAs]);
+	const rows = await db.query(`SELECT address, definition, unit, creation_date FROM aa_addresses WHERE base_aa IN(${In(baseAAs)})`, flat([baseAAs]));
 	
 	return rows.map(row => {
 		return {

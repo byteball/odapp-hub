@@ -1,4 +1,4 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const storage = require('ocore/storage');
 const definitionsCache = require('../../cacheClasses/definitionsCache');
 

@@ -51,5 +51,8 @@ exports.trustedRegistries = {
 
 exports.useExternalFullNode = !!(process.env.EXTERNAL_FULL_NODE && parseInt(process.env.EXTERNAL_FULL_NODE));
 exports.useSQLiteForAssetMetadata = !!(process.env.USE_SQLITE_FOR_ASSET_METADATA && parseInt(process.env.USE_SQLITE_FOR_ASSET_METADATA));
+if (exports.useExternalFullNode) {
+	exports.database = { bReadOnly: true };
+}
 
 console.log('finished odapp-hub conf');

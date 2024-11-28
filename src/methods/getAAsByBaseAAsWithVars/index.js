@@ -1,7 +1,7 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const { getAAStateVars } = require('../getAaStateVars');
 const { isValidAddress } = require('ocore/validation_utils');
-
+const { In, flat } = require('../../utils/dbUtils');
 
 async function getStateVarsWithAA(aa) {
 	return {
@@ -33,7 +33,7 @@ async function getAAsByBaseAAsWithVars(baseAAs) {
 
 	baseAAs = [...new Set(baseAAs)];
 	
-	const rows = await db.query(`SELECT address, definition, unit, creation_date FROM aa_addresses WHERE base_aa IN(${db.In(baseAAs)})`, [baseAAs]);
+	const rows = await db.query(`SELECT address, definition, unit, creation_date FROM aa_addresses WHERE base_aa IN(${In(baseAAs)})`, flat([baseAAs]));
 	const addresses = rows.map(row => row.address);
 	const stateVarsResult = await Promise.all(addresses.map(address => getStateVarsWithAA(address)));
 	const stateVarsByAA = {};
