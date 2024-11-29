@@ -2,7 +2,7 @@
 'use strict';
 const conf = require('ocore/conf.js');
 const storage = require('ocore/storage.js');
-const db = require('./db.js');
+const db = require('ocore/db');
 const validationUtils = require('ocore/validation_utils.js');
 
 const arrRegistryAddresses = Object.keys(conf.trustedRegistries);
@@ -115,7 +115,7 @@ function handlePotentialAssetMetadataUnit(unit, cb) {
 
 
 async function scanLastMetadataUnits(rowid){
-	const rows = await db.query(`SELECT rowid, unit FROM unit_authors WHERE rowid > ? AND address IN(${db.In(arrRegistryAddresses)}) ORDER BY rowid`, 
+	const rows = await db.query('SELECT rowid, unit FROM unit_authors WHERE rowid > ? AND address IN(?) ORDER BY rowid', 
 		[rowid, arrRegistryAddresses]);
 	
 	let arrUnits = rows.map(row => row.unit);

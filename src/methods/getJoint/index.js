@@ -1,4 +1,4 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const { readJoint } = require('ocore/storage');
 
 const jointsCache = require('../../cacheClasses/jointsCache');

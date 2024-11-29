@@ -1,4 +1,4 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 const { isValidAddress } = require('ocore/validation_utils');
 
 async function getBalances(addresses) {
@@ -18,7 +18,7 @@ async function getBalances(addresses) {
 	const rows = await db.query(
 		`SELECT address, asset, is_stable, SUM(amount) AS balance, COUNT(*) AS outputs_count
 		FROM outputs JOIN units USING(unit)
-		WHERE is_spent=0 AND address IN(${db.In(addresses)}) AND sequence='good'
+		WHERE is_spent=0 AND address IN(?) AND sequence='good'
 		GROUP BY address, asset, is_stable`, [addresses]);
 	
 	const balances = {};

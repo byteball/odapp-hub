@@ -1,4 +1,4 @@
-const db = require('../../services/db');
+const db = require('ocore/db');
 
 async function template(addresses) {
 	if (!addresses || !Array.isArray(addresses)) {
