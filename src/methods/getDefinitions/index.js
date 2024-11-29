@@ -1,6 +1,5 @@
 const db = require('ocore/db');
 const storage = require('ocore/storage');
-const { In, flat } = require('../../utils/dbUtils');
 const definitionsCache = require('../../cacheClasses/definitionsCache');
 
 async function getDefinitions(addresses) {
@@ -35,10 +34,10 @@ async function getDefinitions(addresses) {
 	const result = {};
 	
 	const rows = await db.query(`
-		SELECT definition, definition_chash AS address FROM definitions WHERE definition_chash IN(${In(addresses)})
+		SELECT definition, definition_chash AS address FROM definitions WHERE definition_chash IN(?)
 		UNION
-		SELECT definition, address FROM aa_addresses WHERE address IN (${In(addresses)})
-	`, flat([...addresses, ...addresses]));
+		SELECT definition, address FROM aa_addresses WHERE address IN (?)
+	`, [addresses, addresses]);
 
 	rows.forEach(row => {
 		result[row.address] = JSON.parse(row.definition);

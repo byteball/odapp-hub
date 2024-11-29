@@ -2,7 +2,6 @@ const conf = require('ocore/conf');
 const { isStringOfLength } = require('ocore/validation_utils');
 const constants = require('ocore/constants');
 const db = require('ocore/db');
-const { In, flat } = require('../../utils/dbUtils');
 const assetMetadataCache = require('../../cacheClasses/assetMetadata');
 const { getAssetsMetadataFromMemory } = require('../../services/assetMetadata');
 
@@ -56,7 +55,7 @@ async function getAssetsMetadata(assets) {
 		return result ? { ...assetsInCache, ...result } : assetsInCache;
 	}
 	
-	const rows = await db.query(`SELECT metadata_unit, registry_address, suffix, asset, name, decimals FROM asset_metadata WHERE asset IN (${In(assets)})`, flat([assets]));
+	const rows = await db.query('SELECT metadata_unit, registry_address, suffix, asset, name, decimals FROM asset_metadata WHERE asset IN (?)', [assets]);
 	
 	
 	if (rows.length === 0)
