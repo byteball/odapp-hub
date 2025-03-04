@@ -36,7 +36,7 @@ function reOpenDB(cb) {
 		db.open(() => {
 			dbIsClosed = false;
 			eventBus.emit('dbIsOpen');
-			
+
 			if(cb) cb();
 		});
 	});
@@ -140,5 +140,9 @@ module.exports = {
 	close: function(cb){
 		if (db.isClosed()) return cb('already closed');
 		db.close(cb);
+	},
+	
+	isDbClosed: function () {
+		return dbIsClosed;
 	}
 };
