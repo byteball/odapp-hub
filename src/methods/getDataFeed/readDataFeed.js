@@ -1,9 +1,9 @@
 const { readDataFeedValueByParams } = require('ocore/data_feeds');
-const { isDbClosed } = require('../../services/kv.js');
+const { waitIfClosed } = require('../../services/kv.js');
 
 function readDataFeed(params) {
 	return new Promise(resolve => {
-		checkIsDbOpen(() => {
+		waitIfClosed(() => {
 			readDataFeedValueByParams(params, 1e15, 'all_unstable', function (err, value) {
 				if (err) {
 					return resolve({
@@ -15,18 +15,6 @@ function readDataFeed(params) {
 			});
 		});
 	});
-}
-
-function checkIsDbOpen(cb) {
-	if (!isDbClosed()) {
-		cb();
-	} else {
-		console.log('db is closed, waiting 100 ms');
-		
-		setTimeout(() => {
-			checkIsDbOpen(cb);
-		}, 100);
-	}
 }
 
 module.exports = {
