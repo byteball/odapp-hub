@@ -1,7 +1,6 @@
 /*jslint node: true */
 var fs = require('fs');
 var rocksdb = require('level-rocksdb');
-const eventBus = require('ocore/event_bus');
 var app_data_dir = require('ocore/desktop_app.js').getAppDataDir();
 var path = app_data_dir + '/rocksdb';
 
@@ -28,26 +27,27 @@ var db = rocksdb(path, { readOnly: true }, function (err) {
 if (!db)
 	throw Error('no rocksdb instance');
 
-let dbIsClosed = false;
 
 function reOpenDB(cb) {
-	dbIsClosed = true;
 	db.close(() => {
 		db.open(() => {
-			dbIsClosed = false;
-			eventBus.emit('dbIsOpen');
-			
 			if(cb) cb();
 		});
 	});
 }
 
-function waitIfClosed(cb) {
-	if (!dbIsClosed) {
-		return cb();
+function waitIfClosed(cb, attempts = 0) {
+	if (db.isClosed()) {
+		setTimeout(() => {
+			if (attempts >= 200) { // ~1 second
+				throw new Error('kv didn\'t open');
+			}
+			waitIfClosed(cb, ++attempts);
+		}, 5);
+		return;
 	}
 	
-	eventBus.once('dbIsOpen', cb);
+	return cb();
 }
 
 
