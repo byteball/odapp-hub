@@ -18,8 +18,8 @@
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@fastify/websocket": "^8.2.0",
+    "@harperfast/rocksdb-js": "^2.15.0",
     "fastify": "^4.24.3",
-    "level-rocksdb": "^5.0.0",
     "ocore": "git+https://github.com/byteball/ocore.git"
   },
   "devDependencies": {

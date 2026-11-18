@@ -1,18 +1,14 @@
+const { waitForRefresh } = require('../../services/kv.js');
 const { readDataFeedValueByParams } = require('ocore/data_feeds');
-const { waitIfClosed } = require('../../services/kv.js');
 
-function readDataFeed(params) {
+async function readDataFeed(params) {
+	await waitForRefresh();
 	return new Promise(resolve => {
-		waitIfClosed(() => {
-			readDataFeedValueByParams(params, 1e15, 'all_unstable', function (err, value) {
-				if (err) {
-					return resolve({
-						error: err
-					});
-				}
-
-				return resolve(value);
-			});
+		readDataFeedValueByParams(params, 1e15, 'all_unstable', function (err, value) {
+			if (err) {
+				return resolve({ error: err });
+			}
+			return resolve(value);
 		});
 	});
 }
