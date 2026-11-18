@@ -1,146 +1,68 @@
-/*jslint node: true */
-var fs = require('fs');
-var rocksdb = require('level-rocksdb');
-var app_data_dir = require('ocore/desktop_app.js').getAppDataDir();
-var path = app_data_dir + '/rocksdb';
+const conf = require('ocore/conf.js');
+const { createRequire } = require('node:module');
+const { join } = require('node:path');
+const { getAppDataDir } = require('ocore/desktop_app.js');
+const requireOcore = createRequire(require.resolve('ocore/kvstore.js'));
+const { RocksDatabase } = requireOcore('@harperfast/rocksdb-js');
+const dataDir = getAppDataDir();
 
-try{
-	fs.statSync(app_data_dir);
-}
-catch(e){
-	var mode = parseInt('700', 8);
-	var parent_dir = require('path').dirname(app_data_dir);
-	try { fs.mkdirSync(parent_dir, mode); } catch(e){}
-	try { fs.mkdirSync(app_data_dir, mode); } catch(e){}
+if (!conf.useExternalFullNode) {
+	delete process.env.KVSTORE_SECONDARY_PATH;
+} else if (!process.env.KVSTORE_SECONDARY_PATH) {
+	process.env.KVSTORE_SECONDARY_PATH = join(dataDir, 'odapp-hub-rocksdb-secondary');
 }
 
-if (process.platform === 'win32') {
-	process.chdir(app_data_dir); // workaround non-latin characters in path
-	path = 'rocksdb';
-}
-var db = rocksdb(path, { readOnly: true }, function (err) {
-	if (err)
-		throw Error('rocksdb open failed (is the app already running?): ' + err);
-	// if (process.platform === 'win32') // restore current working directory on windows
-	// 	process.chdir(cwd);
+const kvstore = require('ocore/kvstore.js');
+const rocksPath = process.platform === 'win32' ? 'rocksdb' : join(dataDir, 'rocksdb');
+const db = RocksDatabase.open(rocksPath, {
+	keyEncoding: 'binary',
+	encoding: 'binary',
+	secondaryPath: process.env.KVSTORE_SECONDARY_PATH,
 });
-if (!db)
-	throw Error('no rocksdb instance');
+const readKey = kvstore.get;
+let secondaryRefresh;
 
-
-function reOpenDB(cb) {
-	db.close(() => {
-		db.open(() => {
-			if(cb) cb();
+function refreshSecondary() {
+	if (!secondaryRefresh) {
+		secondaryRefresh = db.catchUpWithPrimary().catch(err => {
+			console.error('Failed to refresh RocksDB secondary:', err);
+		}).finally(() => {
+			secondaryRefresh = undefined;
 		});
-	});
-}
-
-function waitIfClosed(cb, attempts = 0) {
-	if (db.isClosed()) {
-		setTimeout(() => {
-			if (attempts >= 200) { // ~1 second
-				throw new Error('kv didn\'t open');
-			}
-			waitIfClosed(cb, ++attempts);
-		}, 5);
-		return;
 	}
-	
-	return cb();
+	return secondaryRefresh;
 }
 
-
-setInterval(() => {
-	reOpenDB();
-}, 1000 * 60);
-
-
-function get(key, cb, retry){
-	waitIfClosed(() => {
-		db.get(key, function(err, val){
-			if (err){
-				if (err.notFound){
-					if (!retry) {
-						reOpenDB(() => {
-							get(key, cb, true);	
-						});
-						return;
-					}
-					return cb();
-				}
-				
-				throw Error('get '+key+' failed: '+err);
-			}
-			cb(val);
+if (kvstore.isSecondary) {
+	kvstore.get = (key, cb) => {
+		if (secondaryRefresh) {
+			secondaryRefresh.then(() => readKey(key, cb));
+			return;
+		}
+		readKey(key, value => {
+			if (value !== undefined)
+				return cb(value);
+			refreshSecondary().then(() => readKey(key, cb));
 		});
-	});
+	};
+	setInterval(refreshSecondary, 60_000).unref();
 }
 
-
-function getMany(keys, cb, retry){
-	waitIfClosed(() => {
-		db.getMany(keys, (err, val) => {
-			const i = val.findIndex(v => v === undefined);
-			if (i !== -1 && !retry) {
-				reOpenDB(() => {
-					getMany(keys, cb, true);
-				});
-				return;
-			}
-			cb(false, val);
-		});
-	});
+async function getMany(keys) {
+	const pendingRefresh = secondaryRefresh;
+	if (pendingRefresh)
+		await pendingRefresh;
+	let values = await db.getManyBinary(keys);
+	if (kvstore.isSecondary && !pendingRefresh && values.includes(undefined)) {
+		await refreshSecondary();
+		values = await db.getManyBinary(keys);
+	}
+	return values.map(value => value?.toString('utf8'));
 }
 
 module.exports = {
-	get,
-	getMany(keys) {
-		return new Promise(resolve => {
-			getMany(keys, (err, val) => {
-				resolve(val);
-			});
-		});
-	},
-	
-	put: function(key, val, cb){
-		db.put(key, val, function(err){
-			if (err)
-				throw Error('put '+key+' = '+val+' failed: '+err);
-			cb();
-		});
-	},
-	
-	del: function(key, cb){
-		db.del(key, function(err){
-			if (err)
-				throw Error('del ' + key + ' failed: ' + err);
-			if (cb)
-				cb();
-		});
-	},
-	
-	batch: function(){
-		return db.batch();
-	},
-	
-	createReadStream: function(options){
-		return db.createReadStream(options);
-	},
-	
-	createKeyStream: function(options){
-		return db.createKeyStream(options);
-	},
-	
-	open: function(cb){
-		if (db.isOpen()) return cb('already open');
-		db.open(cb);
-	},
-	
-	close: function(cb){
-		if (db.isClosed()) return cb('already closed');
-		db.close(cb);
-	},
-	
-	waitIfClosed,
+	get: kvstore.get,
+	getMany,
+	createReadStream: kvstore.createReadStream,
+	waitForRefresh: () => secondaryRefresh,
 };

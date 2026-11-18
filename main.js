@@ -1,8 +1,7 @@
 const conf = require('ocore/conf.js');
+require('./src/services/kv');
 if (!conf.useExternalFullNode) {
 	require('./relay.js');
-} else {
-	require('./mocks');
 }
 
 if (!conf.useSQLiteForAssetMetadata) {
